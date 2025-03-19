@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { persist } from "zustand/middleware";
 
-import { AppwriteException, ID, Models } from "node-appwrite";
+import { AppwriteException, ID, Models } from "appwrite";
 import { account } from "@/models/client/config";
 
 export interface UserPrefs {
@@ -16,16 +16,22 @@ interface IAuthStore {
   hydrated: boolean;
 
   setHydrated(): void;
-  verifySession(): Promise<void>;
+  verfiySession(): Promise<void>;
   login(
     email: string,
     password: string
-  ): Promise<{ success: boolean; error?: AppwriteException | null }>;
+  ): Promise<{
+    success: boolean;
+    error?: AppwriteException | null;
+  }>;
   createAccount(
     name: string,
     email: string,
     password: string
-  ): Promise<{ success: boolean; error?: AppwriteException | null }>;
+  ): Promise<{
+    success: boolean;
+    error?: AppwriteException | null;
+  }>;
   logout(): Promise<void>;
 }
 
@@ -41,12 +47,12 @@ export const useAuthStore = create<IAuthStore>()(
         set({ hydrated: true });
       },
 
-      async verifySession() {
+      async verfiySession() {
         try {
           const session = await account.getSession("current");
           set({ session });
         } catch (error) {
-          console.log("Error in verify session: ", error);
+          console.log(error);
         }
       },
 
@@ -60,15 +66,16 @@ export const useAuthStore = create<IAuthStore>()(
             account.get<UserPrefs>(),
             account.createJWT(),
           ]);
-          if (!user.prefs?.reputation) {
+          if (!user.prefs?.reputation)
             await account.updatePrefs<UserPrefs>({
               reputation: 0,
             });
-          }
 
           set({ session, user, jwt });
+
+          return { success: true };
         } catch (error) {
-          console.log("Error in login function: ", error);
+          console.log(error);
           return {
             success: false,
             error: error instanceof AppwriteException ? error : null,
@@ -78,12 +85,10 @@ export const useAuthStore = create<IAuthStore>()(
 
       async createAccount(name: string, email: string, password: string) {
         try {
-          await account.create(ID.unique(), name, email, password);
-          return {
-            success: true,
-          }
+          await account.create(ID.unique(), email, password, name);
+          return { success: true };
         } catch (error) {
-          console.log("Error in createAccount function: ", error);
+          console.log(error);
           return {
             success: false,
             error: error instanceof AppwriteException ? error : null,
@@ -94,9 +99,9 @@ export const useAuthStore = create<IAuthStore>()(
       async logout() {
         try {
           await account.deleteSessions();
-          set({session: null , jwt: null , user: null});
+          set({ session: null, jwt: null, user: null });
         } catch (error) {
-          console.log("Error in logout function: " , error)
+          console.log(error);
         }
       },
     })),
@@ -104,9 +109,7 @@ export const useAuthStore = create<IAuthStore>()(
       name: "auth",
       onRehydrateStorage() {
         return (state, error) => {
-          if (!error) {
-            state?.setHydrated();
-          }
+          if (!error) state?.setHydrated();
         };
       },
     }
