@@ -98,10 +98,28 @@ export const useAuthStore = create<IAuthStore>()(
 
       async logout() {
         try {
+          // Check if the user has an active session
+          const session = await account.get().catch(() => null);
+
+          if (!session) {
+            console.log("No active session found. Clearing local state.");
+            set({ session: null, jwt: null, user: null });
+            return;
+          }
+
+          // If session exists, proceed with logout
           await account.deleteSessions();
+
+          // Clear session from Zustand store
           set({ session: null, jwt: null, user: null });
+
+          // Remove session from local storage
+          localStorage.removeItem("session");
+          sessionStorage.removeItem("session");
+
+          console.log("User logged out successfully");
         } catch (error) {
-          console.log(error);
+          console.log("Logout error:", error);
         }
       },
     })),

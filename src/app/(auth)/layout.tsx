@@ -9,6 +9,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const { session } = useAuthStore();
   const router = useRouter();
 
+  // console.log("Session Data: ", session);
+
   React.useEffect(() => {
     if (session) {
       router.push("/");
